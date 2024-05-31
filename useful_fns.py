@@ -5,7 +5,7 @@ from os.path import isfile, join
 import json
 import numpy as np
 
-def run_sql(sql_statement, session = session):
+def run_sql(sql_statement, session):
     """
     Create a function to simplify the execution of SQL text strings via Snowpark.
     sql_statement : SQL statement as text string
