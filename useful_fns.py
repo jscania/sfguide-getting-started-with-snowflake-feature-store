@@ -5,6 +5,7 @@ from os.path import isfile, join
 import json
 import numpy as np
 
+
 def run_sql(sql_statement, session):
     """
     Create a function to simplify the execution of SQL text strings via Snowpark.
@@ -12,15 +13,18 @@ def run_sql(sql_statement, session):
     session : Snowpark session.  If none, defaults session is assumed to be set in calling environmentß
     """
     result = session.sql(sql_statement).collect()
-    print(sql_statement, '\n', result, '\n')
-    return {sql_statement : result} 
-    #result = session.sql(sql_statement).queries['queries'][0]
-    #print(result)
+    print(sql_statement, "\n", result, "\n")
+    return {sql_statement: result}
+    # result = session.sql(sql_statement).queries['queries'][0]
+    # print(result)
+
 
 import ast
+
+
 def check_and_update(df, model_name):
     """
-    Check and update the version numbering scheme for Model Registry 
+    Check and update the version numbering scheme for Model Registry
     to get the next version number for a model.
     df         : dataframe from show_models
     model_name : model-name to acquire next version for
@@ -36,11 +40,14 @@ def check_and_update(df, model_name):
         prefix, num = last_value.rsplit("_", 1)
         new_last_value = f"{prefix}_{int(num)+1}"
         lst[-1] = new_last_value
-        return new_last_value 
+        return new_last_value
+
 
 import sqlglot
 import sqlglot.optimizer.optimizer
-def formatSQL (query_in:str, subq_to_cte = False):
+
+
+def formatSQL(query_in: str, subq_to_cte=False):
     """
     Prettify the given raw SQL statement to nest/indent appropriately.
     Optionally replace subqueries with CTEs.
@@ -50,11 +57,14 @@ def formatSQL (query_in:str, subq_to_cte = False):
     expression = sqlglot.parse_one(query_in)
     if subq_to_cte:
         query_in = sqlglot.optimizer.optimizer.eliminate_subqueries(expression).sql()
-    return sqlglot.transpile(query_in, read='snowflake', pretty=True)[0]
+    return sqlglot.transpile(query_in, read="snowflake", pretty=True)[0]
+
 
 from snowflake.ml.registry import Registry
-from snowflake.ml._internal.utils import identifier  
-def create_ModelRegistry(session, database, mr_schema = '_MODEL_REGISTRY'):
+from snowflake.ml._internal.utils import identifier
+
+
+def create_ModelRegistry(session, database, mr_schema="_MODEL_REGISTRY"):
     """
     Create Snowflake Model Registry if not exists and return as reference.
     session   : Snowpark session
@@ -64,18 +74,21 @@ def create_ModelRegistry(session, database, mr_schema = '_MODEL_REGISTRY'):
 
     try:
         cs = session.get_current_schema()
-        session.sql(f''' create schema {mr_schema} ''').collect()
-        mr = Registry(session=session, database_name= database, schema_name=mr_schema)
-        session.sql(f''' use schema {cs}''').collect()
+        session.sql(f""" create schema {mr_schema} """).collect()
+        mr = Registry(session=session, database_name=database, schema_name=mr_schema)
+        session.sql(f""" use schema {cs}""").collect()
     except:
-        print(f"Model Registry ({mr_schema}) already exists")   
-        mr = Registry(session=session, database_name= database, schema_name=mr_schema)
+        print(f"Model Registry ({mr_schema}) already exists")
+        mr = Registry(session=session, database_name=database, schema_name=mr_schema)
     else:
         print(f"Model Registry ({mr_schema}) created")
 
-    return mr   
+    return mr
 
-from snowflake.ml.feature_store import (FeatureStore,CreationMode) 
+
+from snowflake.ml.feature_store import FeatureStore, CreationMode
+
+
 def create_FeatureStore(session, database, fs_schema, warehouse):
     """
     Create Snowflake Feature Store if not exists and return reference
@@ -86,10 +99,14 @@ def create_FeatureStore(session, database, fs_schema, warehouse):
     """
 
     try:
-        fs = FeatureStore(session, database, fs_schema, warehouse, CreationMode.FAIL_IF_NOT_EXIST)
-        print(f"Feature Store ({fs_schema}) already exists") 
+        fs = FeatureStore(
+            session, database, fs_schema, warehouse, CreationMode.FAIL_IF_NOT_EXIST
+        )
+        print(f"Feature Store ({fs_schema}) already exists")
     except:
-        print(f"Feature Store ({fs_schema}) created")   
-        fs = FeatureStore(session, database, fs_schema, warehouse, CreationMode.CREATE_IF_NOT_EXIST)
+        print(f"Feature Store ({fs_schema}) created")
+        fs = FeatureStore(
+            session, database, fs_schema, warehouse, CreationMode.CREATE_IF_NOT_EXIST
+        )
 
     return fs
