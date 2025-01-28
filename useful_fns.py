@@ -1,9 +1,5 @@
-import os
-from snowflake.snowpark import Session, DataFrame, Window, WindowSpec
-from os import listdir
-from os.path import isfile, join
-import json
-import numpy as np
+from snowflake.snowpark import Session
+from snowflake.snowpark.version import VERSION
 
 
 def run_sql(sql_statement, session):
@@ -110,3 +106,41 @@ def create_FeatureStore(session, database, fs_schema, warehouse):
         )
 
     return fs
+
+
+def init_snowflake(scale_factor, tpcxai_database, tpcxai_schema, fs_qs_role):
+    # Create Snowflake Session object
+    session = Session.builder.getOrCreate()
+    session.sql_simplifier_enabled = True
+    snowflake_environment = session.sql(
+        "SELECT current_user(), current_version()"
+    ).collect()
+    snowpark_version = VERSION
+
+    # Set  Environment
+    session.sql(f"""use database {tpcxai_database}""").collect()
+    session.sql(f"""use schema {tpcxai_schema}""").collect()
+    session.sql(f"""use role {fs_qs_role}""").collect()
+
+    # Create a Warehouse
+    # warehouse_env = f"""{tpcxai_database}_{tpcxai_training_schema}"""
+    warehouse_sz = "MEDIUM"
+    warehouse_env = f"TPCXAI_{scale_factor}_QUICKSTART_WH"
+    session.sql(f"""use warehouse {warehouse_env}""").collect()
+    session.sql(
+        f"""alter warehouse {warehouse_env} set warehouse_size = {warehouse_sz}"""
+    ).collect()
+
+    # Current Environment Details
+    print("\nConnection Established with the following parameters:")
+    print(f"User                        : {snowflake_environment[0][0]}")
+    print(f"Role                        : {session.get_current_role()}")
+    print(f"Database                    : {session.get_current_database()}")
+    print(f"Schema                      : {session.get_current_schema()}")
+    print(f"Warehouse                   : {session.get_current_warehouse()}")
+    print(f"Snowflake version           : {snowflake_environment[0][1]}")
+    print(
+        f"Snowpark for Python version : {snowpark_version[0]}.{snowpark_version[1]}.{snowpark_version[2]} \n"
+    )
+
+    return [session, warehouse_env]

@@ -2,59 +2,10 @@ import json
 
 from snowflake.snowpark import Session
 import snowflake.snowpark.functions as F
-from snowflake.snowpark.version import VERSION
 from snowflake.ml.feature_store import FeatureView, Entity
-from snowflake.ml.utils import connection_params
 
-from useful_fns import formatSQL, create_FeatureStore
+from useful_fns import formatSQL, create_FeatureStore, init_snowflake
 from feature_engineering_fns import uc01_load_data, uc01_pre_process
-
-
-def init_snowflake(scale_factor, tpcxai_database, tpcxai_training_schema, fs_qs_role):
-    # Create Snowflake Session object
-    session = Session.builder.getOrCreate()
-    session.sql_simplifier_enabled = True
-    snowflake_environment = session.sql(
-        "SELECT current_user(), current_version()"
-    ).collect()
-    snowpark_version = VERSION
-
-    # Set  Environment
-    session.sql(f"""use database {tpcxai_database}""").collect()
-    session.sql(f"""use schema {tpcxai_training_schema}""").collect()
-    session.sql(f"""use role {fs_qs_role}""").collect()
-
-    # Create a Warehouse
-    # warehouse_env = f"""{tpcxai_database}_{tpcxai_training_schema}"""
-    warehouse_sz = "MEDIUM"
-    warehouse_env = f"TPCXAI_{scale_factor}_QUICKSTART_WH"
-    session.sql(f"""use warehouse {warehouse_env}""").collect()
-    session.sql(
-        f"""alter warehouse {warehouse_env} set warehouse_size = {warehouse_sz}"""
-    ).collect()
-
-    # Current Environment Details
-    print("\nConnection Established with the following parameters:")
-    print(f"User                        : {snowflake_environment[0][0]}")
-    print(f"Role                        : {session.get_current_role()}")
-    print(f"Database                    : {session.get_current_database()}")
-    print(f"Schema                      : {session.get_current_schema()}")
-    print(f"Warehouse                   : {session.get_current_warehouse()}")
-    print(f"Snowflake version           : {snowflake_environment[0][1]}")
-    print(
-        f"Snowpark for Python version : {snowpark_version[0]}.{snowpark_version[1]}.{snowpark_version[2]} \n"
-    )
-
-    return [session, warehouse_env]
-
-
-def get_feature_store(tpcxai_schema, warehouse_env):
-    # Create/Reference Snowflake Feature Store for Training (Development) Environment
-    fs = create_FeatureStore(
-        session, tpcxai_database, f"""_{tpcxai_schema}_FEATURE_STORE""", warehouse_env
-    )
-
-    return fs
 
 
 def get_dataframes(session, tpcxai_database, tpcxai_schema):
@@ -180,7 +131,12 @@ if __name__ == "__main__":
     )
 
     # Get Feature Store
-    fs = get_feature_store(tpcxai_training_schema, warehouse_env)
+    fs = create_FeatureStore(
+        session,
+        tpcxai_database,
+        f"""_{tpcxai_training_schema}_FEATURE_STORE""",
+        warehouse_env,
+    )
 
     # Get Dataframes
     customer_sdf, line_item_sdf, order_sdf, order_returns_sdf = get_dataframes(
