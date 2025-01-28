@@ -1,7 +1,6 @@
 name: snowflake-demo
 channels:
   - https://repo.anaconda.com/pkgs/snowflake
-  - nodefaults
 dependencies:
   - python=3.10
   - numpy 
@@ -9,11 +8,7 @@ dependencies:
   - pyarrow 
   - jupyterlab 
   - tabulate
+  - sqlglot
   - snowflake-snowpark-python=1.16.0
   - snowflake-ml-python=1.5.1
   - notebook
-  - pip
-  - openssl=1.1.1
-  - pip:
-    # Snowflake
-    - snowflake-cli-labs
